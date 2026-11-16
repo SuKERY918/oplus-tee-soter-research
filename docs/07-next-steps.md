@@ -72,7 +72,7 @@ vendor.qti.hardware.soter-provision 3; echo rc=$?
 - 解包 `abl_a` 的 LZMA FV，定位 `GetSecureType` / `set_boot_info_to_rpmb` 调用点；
 - 研究 `oemLcsDevState` 的读取路径和变量存储格式；
 - 评估 EDL/firehose 刷入 patched ABL + 绕过 XBL 校验的可行性；
-- 参考 gbl-chainload 的 protocol hook 思路，但 SM8750 没有 efisp，需要另找早期代码执行入口。
+- 寻找 SM8750 上可用的早期代码执行入口。
 
 ## 工具与脚本
 

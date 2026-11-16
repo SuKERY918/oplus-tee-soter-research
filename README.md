@@ -33,10 +33,3 @@
 ## 边界
 
 本仓库只记录技术事实与实验数据，不包含任何泄漏的 keybox、私钥、厂商签名材料或绕过付费/授权的工具。所有实验均在研究者本人持有的设备上进行。
-
-## 参考
-
-- [SoterFixer](https://github.com/xiaohuangbo/SoterFixer)
-- [MobileModels issue #93：解锁后 TEE 屏蔽](https://github.com/KHwang9883/MobileModels/issues/93)
-- [一加社区：解锁后微信指纹不可用](https://bbs.oneplus.com/thread/2244182264294408193)
-- [TEE 损坏修复教程](https://imagebuilder1837.github.io/2025/02/07/tee-repair/)
