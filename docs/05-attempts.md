@@ -105,7 +105,7 @@ OMMEGA_SOTER_SERVICE=vendor.qti.hardware.soter.ISoter/default \
 
 ## 五、Tricky Store
 
-作者只装了 Tricky Store + Zygisk Next。Tricky Store 的 README：
+Tricky Store 的 README：
 
 - Android 12+；
 - 可放 `keybox.xml` 到 `/data/adb/tricky_store/keybox.xml`；
@@ -113,7 +113,7 @@ OMMEGA_SOTER_SERVICE=vendor.qti.hardware.soter.ISoter/default \
 - `spoof_build_vars` 需要 Zygisk；
 - 默认 “hack the leaf certificate”，TEE 坏掉的设备可以对包名加 `!` 走 “generate certificate support”。
 
-它能 hook keystore2 的证书链，解决 Attestation / Play Integrity；但它碰不到 cryptoeng cmd 57，也碰不到 SOTER TA。因此它能让 Attestation key 和 RKP default 绿，不能让 SOTER key 绿——这与作者自己说「Tricky Store 让 Attestation 和 RKP 绿」一致。
+它能 hook keystore2 的证书链，解决 Attestation / Play Integrity；但它碰不到 cryptoeng cmd 57，也碰不到 SOTER TA。因此它能让 Attestation key 和 RKP default 绿，不能让 SOTER key 绿。
 
 ## 六、微信卡死的根因
 

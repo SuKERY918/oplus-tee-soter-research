@@ -28,7 +28,7 @@ DP HDCP V2 key
 
 颜色规则：`isSupport && !isKeyImported` 时显示红字 `key_status_fail`；其余情况一律绿字，所以「不支持」也是绿色。所谓「全绿」= 没有红行。
 
-作者那台 Ace 2 的页面只有 14 行（没有 `DP HDCP V2 key`），而且 `PKI Group cert` 显示「不支持」；Ace 6 是 15 行，`PKI Group cert` 为「成功」。不同机型/系统版本的页面项不完全一致。
+本机（Ace 6）页面是 15 行，`PKI Group cert` 为「成功」，`DP HDCP V2 key` 为「不支持」。
 
 ## 三行的真实来源
 

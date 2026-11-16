@@ -112,19 +112,6 @@ signature: sha256WithRSA (RSA-2048)
 
 结论：微信在本地就校验证书链，自签 ATTK 被拒；即使本地骗过，开通/支付最终还要腾讯服务端接受这条链。
 
-## SoterChecker 的判词
-
-作者配图里的 SoterChecker（[Andrea-lyz/SoterChecker](https://github.com/Andrea-lyz/SoterChecker)）不是只看包名，它会：
-
-- 检查 Soter 组件可见性、可绑定、`bindService`、APK 路径/SHA-256、目录项、oat/vdex；
-- 调 `com.tencent.soter.soterserver.ISoterService` 的完整调用矩阵；
-- 校验 ASK ← ATTK（有 ATTK 公钥时）→ AuthKey 的证书链，自实现 EMSA-PSS/SHA-256；
-- 检查键集、键序、raw/challenge、计数器单调。
-
-作者截图判「干净 / 32 通过 · 0 失败 · 2 警告」，说明在他手机上 SOTER 事务与签名链和活 TA 一致。这比工程模式页的弱检查强得多，也说明他的 SOTER 不是简单 stub。
-
-README 明确写了边界：「腾讯服务端的设备登记与真 ATTK 签名不在范围内：本地自洽 ≠ 服务端接受」。
-
 ## 本机结论
 
 - TA 对 SOTER 的 generate/verify/export 一律 -20，且不依赖调用者 uid；
