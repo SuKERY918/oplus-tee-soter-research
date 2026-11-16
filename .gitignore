@@ -1,0 +1,11 @@
+*.keybox
+*keybox*.xml
+*.pem
+*.p12
+*.jks
+*.img
+*.bin
+*.log
+frida-server*
+node_modules/
+agent_soter.compiled.js
