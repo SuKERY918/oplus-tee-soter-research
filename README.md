@@ -29,7 +29,3 @@
 - `tools/fake61.js`：Frida hook cryptoeng dispatcher，伪造 RKP cmd 61 返回。
 - `tools/agent_soter.js` + `tools/hook_soter.py`：Frida hook `com.tencent.soter.soterserver.SoterService` 的 SOTER 原语，记录调用与返回。
 - `tools/start_soterta.sh`：无模块方式启动 Ommega 本地软件 SOTER TA。
-
-## 边界
-
-本仓库只记录技术事实与实验数据，不包含任何泄漏的 keybox、私钥、厂商签名材料或绕过付费/授权的工具。所有实验均在研究者本人持有的设备上进行。
