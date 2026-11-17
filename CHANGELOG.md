@@ -6,11 +6,14 @@
 
 ### Added
 
+- `docs/12-soter-key-state.md`：SOTER 状态机与“真修复”假设。整理 TAM 按 `device_id` 查 ATTK、`soter64` TA 的 `SOTER_CE`/`enable_soter`/`get_validated_attk` 字符串、KeyStore 槽位、候选 A–F 路线、“一机一文件”五种解释、锁态/解锁态与命令授权验证矩阵、阶段 F 实验计划和预测。
 - `docs/11-kminstallkeybox-internals.md`：`KmInstallKeybox` 完整逆向（argc 4/5/7/8 分支、`rkp` 内联比较、`InstallKeybox` 构造参数语义）与 persist SFS 槽位文件格式。
 - `tools/diag.sh`：只读诊断，输出设备指纹、cmdline、15 行状态、`soter-provision` 返回值、persist 槽位与 keystore2 状态。
 - `tools/fix-rkp.sh`：`KmInstallKeybox ... true rkp` + `pm clear` + 验证的完整修复流程。
 - `LICENSE`（MIT）、`CHANGELOG.md`。
 - README 重构为标准工程结构：设备表、结论表、三态对照、快速开始、目录结构、文档索引、工具表、已知边界。
+- README 结论 8、目录/文档索引、已知边界补充 SOTER 状态/配置门槛与 12 号文档入口。
+- `docs/07-next-steps.md`：新增问题 8–11（`SOTER_CE`/`enable_soter`、ATTK header/status、ASK/签名命令授权、一机一文件判定）和阶段 F（SOTER 状态/配置差集）。
 
 ### Fixed
 

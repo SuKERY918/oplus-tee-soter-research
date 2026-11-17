@@ -30,6 +30,7 @@
 | 5 | 本地软件 SOTER TA 能生成并导出 ASK，但微信 1 秒内 `removeAllAuthKey` + `removeAllUidKey` | ASK 上报 TAM 后不认自签 ATTK，决定性是服务端校验 | [09](docs/09-omk-ommega-attk.md) |
 | 6 | `set_device_locked` 返回 `-40` | 锁态由 ABL 在 boot 阶段写入 RPMB，Android 侧改不了 | [06](docs/06-fake-relock.md) |
 | 7 | `ro.boot.*` 是模块伪装 | `/proc/cmdline` 真实值 `oplusboot.verifiedbootstate=orange`、`oplusboot.secure_type=3` | [01](docs/01-device.md) |
+| 8 | SOTER 失败可能不只是 key 销毁，而是 TA 状态/配置门槛 | `soter64` TA 含 `SOTER_CE`/`enable_soter`/`qsee_cfg_getpropval` 与 `get_validated_attk`/`ATTK status`；下一步做锁态/解锁态差集 | [12](docs/12-soter-key-state.md) |
 
 ## 三态对照
 
@@ -89,7 +90,8 @@ adb shell 'cat /proc/cmdline' | tr ' ' '\n' | grep oplusboot
 │   ├── 08-repro-rollback.md  命令级复现与回滚
 │   ├── 09-omk-ommega-attk.md OhMyKeymint / Ommega 与信任根
 │   ├── 10-rkp-device-id.md   RKP device ID 预配（已验证修复）
-│   └── 11-kminstallkeybox-internals.md  KmInstallKeybox 逆向与 persist 槽位格式
+│   ├── 11-kminstallkeybox-internals.md  KmInstallKeybox 逆向与 persist 槽位格式
+│   └── 12-soter-key-state.md SOTER 状态机、候选真修复路线与验证矩阵
 └── tools/
     ├── diag.sh               只读诊断
     ├── fix-rkp.sh            Attestation / RKP 修复
@@ -101,7 +103,7 @@ adb shell 'cat /proc/cmdline' | tr ' ' '\n' | grep oplusboot
 
 ## 文档
 
-建议按 00 → 01 → 02 → 04 → 10 的顺序读；只想复现修复的直接看 08 和 10。
+建议按 00 → 01 → 02 → 04 → 09 → 12 的顺序读；只想复现 Attestation/RKP 修复的直接看 08 和 10。
 
 | 文档 | 内容 |
 | --- | --- |
@@ -117,6 +119,7 @@ adb shell 'cat /proc/cmdline' | tr ' ' '\n' | grep oplusboot
 | [09 信任根](docs/09-omk-ommega-attk.md) | ATTK→ASK→AuthKey、TAM 校验位置、三条可行路线 |
 | [10 RKP device ID](docs/10-rkp-device-id.md) | 唯一已验证的持久修复路径 |
 | [11 KmInstallKeybox 逆向](docs/11-kminstallkeybox-internals.md) | 参数形状、分支逻辑、persist 槽位文件格式 |
+| [12 SOTER key 状态机](docs/12-soter-key-state.md) | 真修复候选路线、TA 命令面、一机一文件分类、阶段 F 实验矩阵 |
 
 ## 工具
 
@@ -136,6 +139,7 @@ adb shell 'cat /proc/cmdline' | tr ' ' '\n' | grep oplusboot
 - **`... true rkp` 只修 Attestation / RKP**：与 SOTER 的 `soter64` TA 完全无关，不要指望它让 SOTER key 变绿。
 - **RPMB 写入不可回滚**：device ID 记录一旦写入，删 persist 槽位或 dd 回镜像都撤不掉；它写入的是设备真实身份信息，不是密钥，见 [10 §5](docs/10-rkp-device-id.md#5-副作用与回滚)。
 - **本机没有 `efisp` 分区**：`06` 里讨论的假回锁路线只覆盖部分机型，本机不可行。
+- **SOTER 不只是 key 问题**：`soter64` TA 同时检查 `is_secure_boot_enabled`、`SOTER_CE`/`enable_soter` 配置和 ATTK header/status；`SoterFixer` 的重启偶发有效也说明存在状态性门槛。候选路线和验证方法见 [12](docs/12-soter-key-state.md)，尚未在本机复现。
 
 ## 复现与回滚
 
