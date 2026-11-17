@@ -18,9 +18,10 @@
 ## KmInstallKeybox
 
 ```
-LD_LIBRARY_PATH=/vendor/lib64/hw /vendor/bin/KmInstallKeybox <keybox.xml> <DeviceID> <true|false>
+LD_LIBRARY_PATH=/vendor/lib64/hw /vendor/bin/KmInstallKeybox <keybox.xml> <DeviceID> <true|false> [rkp]
 ```
 
+- argc 只接受 4/5/7/8；第 5 个参数为 `rkp` 时只做 device ID 预配，不读 keybox 文件。
 - teesim 自带 `keybox.xml` 直接喂：`InstallKeybox::ParseFile+9668` 触发 `ubsan: sub-overflow` + SIGABRT。
 - 自签 keybox：TA 返回 `KeyMasterInstallKeybox error-32`，rc=48。
 - 规范化 teesim keybox（PKCS8 私钥、PEM 证书、DeviceID `PLQ110`、补 `NumberOfCertificates`）后成功：
@@ -37,6 +38,10 @@ Attestation 变绿。但 HAL/TA 重启后又红；重装仍打印成功、页面
 security_level.rs:809: While generating without a provided attestation key
 User consent required to communicate with remote provisioning server
 ```
+
+- 只写 ID（`... <DeviceID> true rkp`）：不读文件也输出 `TEE done` + `InstallKeybox is done!`，persist 的
+  `_Alt` 槽位重建为完整 14 文件对；`pm clear` 掉旧 blob 后 RKP 证书链持久生效、重启保持，工程模式 Attestation key
+  与 RKP default 同时变绿，见 [10](10-rkp-device-id.md)。
 
 ## teesim
 

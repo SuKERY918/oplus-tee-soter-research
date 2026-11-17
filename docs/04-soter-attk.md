@@ -108,6 +108,26 @@ SOTER 是三级密钥，决定成败的是最后一级校验：
 - 自签 ATTK 不在 TAM 备案，所以 ASK 一定过不了；工程模式绿、`runCryptoCmd(57)==0`、甚至客户端暂时不报错，都不能证明微信会接受。
 - `removeAllAuthKey`/`removeAllUidKey` 更像是服务端拒绝后的客户端清理，而不是本地链没拼好。
 
+## 屏蔽还是清空
+
+从 TA 固件侧能拿到更多线索。`soter64.b00…b08` 拼接后是 74,924 B 的 ELF64（`0x0-0xe7c8` rx + 四个 rw 段），
+除上面已列的字符串外还有：
+
+```
+secboot device : %u
+get_validated_attk
+soter_sfs_check_file / soter_sfs_check_key / soter_sfs_read_file
+soter_rpmb_alloc_read / update_soter_rpmb_header
+rpmb_init
+qsee_stor_device_init error ret: %d
+SOTER_GENERATE_ATTK / SOTER_VERIFY_ATTK / SOTER_EXPORT_ATTK_PUBLIC / SOTER_GET_DEVICE_ID / SOTER_GET_VERSION
+```
+
+`is_secure_boot_enabled` 与 `BAILING OUT` 在初始化路径，`/persist/data/soter/`（`open_soter_partition` 的目标）
+在设备上从未被创建 —— 支持「TA 在读 key 之前就退出」的屏蔽假说，而不是「ATTK 已被删除」。
+但 `soter-provision 4`（get device ID，纯读）同样 `-20`，说明 TA 连设备 ID 都不给，用户态无法区分
+「被 secboot 挡住」与「ATTK 不存在」。要坐实只能等锁态基线（07 阶段 A）或找到 TA 的补丁点。
+
 ## 结论
 
 - TA 对 generate/verify/export 一律 `-20`，与 uid 无关；

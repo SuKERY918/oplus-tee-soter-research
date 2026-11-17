@@ -7,7 +7,7 @@
 | # | 结论 |
 | --- | --- |
 | 1 | 工程模式三个红项走三条独立链路：SOTER → QTI `soter64` TA（cryptoeng cmd 57）；Attestation → KeyMint TA + keystore2；RKP → cryptoeng cmd 61 |
-| 2 | `KmInstallKeybox` 能让 Attestation 变绿，但不持久；KeyMint HAL/TA 重启后 keybox 丢失，回退 RKP 卡在 `User consent required` |
+| 2 | `KmInstallKeybox` 的 keybox 路线短暂变绿、HAL/TA 重启后丢失；但 `... true rkp`（只写 device ID）走 RKP 远程预配，清掉 app 旧 blob 后 Attestation 持久变绿，重启保持，见 [10](docs/10-rkp-device-id.md) |
 | 3 | SOTER 是 TA 侧拒绝：`soter-provision 1/2` 以 uid 0/1000/2000 运行都返回 `-20` |
 | 4 | 工程模式 SOTER 绿在 TA 失败时是假绿：HAL 返回空 buffer，`runCryptoCmd` 把空数组读成 0 |
 | 5 | 本地软件 SOTER TA 能生成并导出 ASK，但微信 1 秒内 `removeAllAuthKey` + `removeAllUidKey`；ASK 上报后 TAM 不认自签 ATTK（决定性是服务端校验，不是本地链） |
@@ -27,6 +27,7 @@
 - [07 后续计划](docs/07-next-steps.md)
 - [08 复现与恢复](docs/08-repro-rollback.md)
 - [09 OhMyKeymint / Ommega 与 ATTK 信任根](docs/09-omk-ommega-attk.md)
+- [10 RKP device ID 预配：Attestation key 持久恢复](docs/10-rkp-device-id.md)
 
 ## 工具
 
