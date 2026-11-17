@@ -66,16 +66,23 @@
 
 ## 工程模式 15 行（本机实测）
 
-| 行 | 状态 | 行 | 状态 |
-| --- | --- | --- | --- |
-| RPMB key | 成功 | FIDO | 成功 |
-| **SOTER key** | **失败** | PKI cert | 成功 |
-| IFAA | 成功 | PKI Group cert | 成功 |
-| Crypto | 成功 | FIDO2 | 成功 |
-| WidevineL1 | 成功 | RKP default | 成功 |
-| HDCP | 不支持 | RKP widevine | 不支持 |
-| Attestation key | 成功 | StrongBox | 不支持 |
-| | | DP HDCP V2 | 不支持 |
+| 行 | 状态 |
+| --- | --- |
+| RPMB key | 成功 |
+| **SOTER key** | **失败** |
+| IFAA | 成功 |
+| Crypto | 成功 |
+| WidevineL1 | 成功 |
+| HDCP | 不支持 |
+| Attestation key | 成功 |
+| FIDO | 成功 |
+| PKI cert | 成功 |
+| PKI Group cert | 成功 |
+| FIDO2 | 成功 |
+| RKP default | 成功 |
+| RKP widevine | 不支持 |
+| StrongBox | 不支持 |
+| DP HDCP V2 | 不支持 |
 
 只剩 SOTER 一行红。Attestation / RKP 的绿是 [09](docs/09-rkp-attestation.md) 修出来的；早期记录的"裸解锁全红"状态已经不存在。
 
