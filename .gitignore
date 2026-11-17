@@ -9,3 +9,6 @@
 frida-server*
 node_modules/
 agent_soter.compiled.js
+__pycache__/
+*.pyc
+samples/
