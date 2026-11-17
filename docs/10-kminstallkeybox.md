@@ -150,7 +150,7 @@ gk_sfs_file（16,384 B）
 
 三个容易搞错的点：
 
-1. **不是 cryptoeng 的。** cryptoeng 的 init rc 只是对它 `chmod`，内容由 KeyMint/keystore 使用。
+1. **不是 cryptoeng 的。** cryptoeng 的 init rc 里确实有一段指向它的 `chmod 0700/0600`，但条件是 `ro.board.platform=canoe`；本机是 `sun`，这段**不会执行**。槽位内容（`TEE_DEVICE_ID_*`、`attest_key`、`gk_sfs_file`）才是判据：它由 KeyMint/keystore 使用。
 2. **不是 SOTER 的 ATTK。** ATTK 在 RPMB 的 `FTQS` 分区（[05 §5](05-soter-ta.md)），与这里无关。
 3. **`_Alt` 是 overlay 层。** rkp 预配走的是"重建 overlay 槽位"，先清空再按 device ID 写入，所以自签 key blob 被一并移除，而原厂槽位不动。
 

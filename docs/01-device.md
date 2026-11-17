@@ -5,16 +5,17 @@
 | 项 | 值 |
 | --- | --- |
 | 型号 | OnePlus Ace 6（`PLQ110`，板级 `OP6113L1`） |
-| SoC | SM8750（平台代号 `sun` / `pakala`，`ro.board.platform=canoe`） |
-| 系统 | ColorOS 17 / Android 17（SDK 37），`PLQ110_17.0.0.104(CN01)` |
-| 内核 | `6.6.118-android15-8-…`，ABL 构建 |
-| 构建号 | `CP2A.260605.016` |
+| SoC | SM8750（平台代号 `sun`，`ro.board.platform=sun`；`xbl_config` 里的 dtb 名是 `pakala`） |
+| 系统 | ColorOS 17 / Android 17（SDK 37），`ro.build.display.id = PLQ110_17.0.0.104(CN01)` |
+| 内核 | `6.6.118-android15-8-g9bc34d5b0c79-abogki537459655-4k` |
+| OTA | `PLQ110_11.C.14_1140_202610072355`（`ro.build.version.ota`） |
+| 构建标签 | `CP2A.260605.016`（fingerprint 的构建位） |
 | 指纹 | `OnePlus/PLQ110/OP6113L1:17/CP2A.260605.016/B.30b7e77-a6bb2c-a8f423:user/release-keys` |
 | 安全补丁 | 2026-09-01 |
 | Root | KernelSU，`uid=0`，域 `u:r:ksu:s0`，SELinux `Enforcing` |
 | 槽位 | `_a` |
 
-> 构建号与 OTA 号不是同一个东西：本次实测 `ro.build.display.id = CP2A.260605.016`，而 `ro.build.version.ota = PLQ110_17.0.0.104(CN01)`。早期文档把两者混写成同一行，容易对不上。
+> 三个号各不相同：fingerprint 构建位是 `CP2A.260605.016`，`ro.build.display.id` 是 `PLQ110_17.0.0.104(CN01)`，`ro.build.version.ota` 是 `PLQ110_11.C.14_1140_202610072355`。早期文档把前两个混写成一行，容易对不上。
 
 ## 2. 真实锁态
 
@@ -79,7 +80,7 @@ com.tencent.soter.soterserver             → 微信侧 SOTER 服务（u0_aXXX�
 init 定义：
 
 - `/vendor/etc/init/vendor.qti.hardware.soter-service.rc`：`service vendor.soter`，`class late_start`，`user system`，`group system drmrpc`。
-- `/odm/etc/init/vendor.oplus.hardware.cryptoeng@1.0-service_FDE.rc`：`service hal_cryptoeng_oplus`，`class hal`，`user system`，`interface aidl …ICryptoeng/default`；同一份 rc 还对 persist 的 `DdHdVQd1…_` 与 `_Alt` 做 chmod（见 [10 §5](10-kminstallkeybox.md)）。
+- `/odm/etc/init/vendor.oplus.hardware.cryptoeng@1.0-service_FDE.rc`：`service hal_cryptoeng_oplus`，`class hal`，`user system`，`interface aidl …ICryptoeng/default`；同一份 rc 里还有一段 `on property:sys.boot_completed=1 && property:ro.board.platform=canoe` 的 `chmod`，目标是 persist 的 `DdHdVQd1…_` 与 `_Alt` —— 但**本机 `ro.board.platform=sun`，这段不会执行**（见 [10 §5](10-kminstallkeybox.md)）。
 
 两个服务都被 `kill -9` 后由 init 自动拉起，可作为实验里的"重启点"。
 

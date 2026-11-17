@@ -71,7 +71,7 @@
 | C2 | 死锁：`generate` 要求门禁返回 `-13`，而实测是 `-20`，且 `-20` 只在"表头有效但载荷无效"时产生 | [06 §3](06-root-cause.md) |
 | C3 | `is_secure_boot_enabled` 分支：`query_device_id` 在非安全启动下用 PRNG 随机数，安全启动下用 KDF 派生 —— 解锁后派生根会变 | [05 §6](05-soter-ta.md) |
 | C4 | death recipient 反注册 bug：`getSoterAidl` 在 link 之后立刻 `AIBinder_DeathRecipient_delete`，`soter just died` 永不触发 | [03 §6](03-cryptoeng-hal.md) |
-| C5 | persist SFS 槽位归属：`DdHdVQd1…` 是 KeyMint/keystore 的 attestation key 存储，`_Alt` 是 RKP overlay；两者都不是 SOTER 的 ATTK | [10 §5](10-kminstallkeybox.md) |
+| C5 | persist SFS 槽位归属：`DdHdVQd1…` 是 KeyMint/keystore 的 attestation key 存储，`_Alt` 是 RKP overlay；两者都不是 SOTER 的 ATTK（cryptoeng rc 里那段 `chmod` 只在 `ro.board.platform=canoe` 下执行，本机是 `sun`） | [10 §5](10-kminstallkeybox.md) |
 | C6 | `StoreKeybox` 是 Widevine keybox 工具，与 SOTER 无关 | [07 §3](07-attempts.md) |
 | C7 | `rpmbClient smci -e` 是设备上唯一可见的 RPMB 全擦原语（未执行） | [06 §6](06-root-cause.md) |
 | C8 | `soter64.mdt` 里 0x358 起是 `b00…b07` 的 SHA-384 表，改动任何分片都会被 `load_app Error 12` 拒绝 | [05 §8](05-soter-ta.md) |

@@ -16,7 +16,7 @@
 
 `kill -9` 后 init 立刻拉起（pid 会变），可用作"清缓存"手段——这正是恢复假绿的办法（[02 §4](02-engineering-mode.md)）。
 
-同一份 rc 还对 persist 的 `DdHdVQd1…_` 与 `_Alt` 做 `chmod 0700/0600`，于是有人误以为那个槽位属于 cryptoeng；实际内容属于 KeyMint（[10 §5](10-kminstallkeybox.md)）。
+同一份 rc 里有一段 `on property:sys.boot_completed=1 && property:ro.board.platform=canoe` 的 chmod，指向 persist 的 `DdHdVQd1…_` 与 `_Alt`。**本机 `ro.board.platform=sun`，这段不执行**，所以它既不能证明"cryptoeng 正在用这个槽位"，也不能当作归属判据；槽位内容按 tag 判定属于 KeyMint（[10 §5](10-kminstallkeybox.md)）。
 
 ## 2. 入口与分发
 
