@@ -92,8 +92,24 @@ basicConstraints: CA:TRUE
 signature: sha256WithRSA (RSA-2048)
 ```
 
+注意协议形状：SOTER 的 ASK/AuthKey blob 是 `[u32 LE JSON 长度][JSON][RSA-PSS 签名]`，不是 X.509 证书链；JSON 字段是 `pub_key`、`cpu_id`、`counter`、`uid`，部分实现还带 `rsa_pss_saltlen`。用自签证书去模拟，协议层就先偏了。本机导出的 ASK 是 805 B，真机抓包是 809 B，字段/盐长/键序值得继续对齐。
+
+## 信任链与校验位置
+
+SOTER 是三级密钥，决定成败的是最后一级校验：
+
+| 层 | 生成位置 | 谁签名 | 谁校验 |
+| --- | --- | --- | --- |
+| ATTK | 产线 TEE，一机一密 | 厂商把公钥登记到腾讯 TAM | TAM |
+| ASK | 设备 TEE（或软件 TA） | ATTK 私钥 | 应用服务器把签名交给 TAM 验 |
+| AuthKey | 设备 TEE（或软件 TA） | ASK 私钥 | 应用服务器用 ASK 公钥验 |
+
+- ASK 上报后，应用服务器自己无法验证，必须把 ATTK 签名交给 TAM；TAM 用产线登记的 ATTK 公钥验签，验过了应用服务器才保存 ASK 公钥。
+- 自签 ATTK 不在 TAM 备案，所以 ASK 一定过不了；工程模式绿、`runCryptoCmd(57)==0`、甚至客户端暂时不报错，都不能证明微信会接受。
+- `removeAllAuthKey`/`removeAllUidKey` 更像是服务端拒绝后的客户端清理，而不是本地链没拼好。
+
 ## 结论
 
 - TA 对 generate/verify/export 一律 `-20`，与 uid 无关；
 - 用户态伪造 ASK/ATTK 会被微信立刻清理；
-- 微信在本地校验证书链，自签 ATTK 被拒。
+- 决定性校验在腾讯侧：ASK 上报 TAM 时，自签 ATTK 没有备案，服务端拒绝，客户端随后清 ASK/AuthKey。

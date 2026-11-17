@@ -4,9 +4,16 @@
 
 | 目标行 | 依赖 | 办法 | 结果 |
 | --- | --- | --- | --- |
-| SOTER key | `soter64` TA（cmd 57） | 杀 teesim、`soter-provision`、软件 SOTER TA | 原厂一律 -20；软件 TA 骗过页面，微信拒收自签链 |
+| SOTER key | `soter64` TA（cmd 57） | 杀 teesim、`soter-provision`、软件 SOTER TA | 原厂一律 -20；软件 TA 骗过页面，但 ASK 上报 TAM 被拒（自签 ATTK 无备案） |
 | Attestation key | KeyMint + keystore2 | `KmInstallKeybox` | 短暂变绿，HAL/TA 重启后丢失 |
 | RKP default | cryptoeng cmd 61 | Frida 伪造返回 | 页面绿，靠 `rkpdefault_import` 缓存 |
+
+## 判断标准
+
+- 工程模式绿、cmd 57 返回 0：只说明本地 HAL 调用成功，不能说明微信接受。
+- 真实进展看：`soter-provision 1/2`、微信 `generateAskKeyPair` 返回、`soter_status.xml` 的 `WechatASK`、是否出现 `removeAllAuthKey`/`removeAllUidKey`。
+- 本地软件 TA 返回 ASK 后被秒清：优先怀疑 TAM 不认这把 ATTK（自签、未备案、或与 `cpu_id` 不匹配），其次才是 JSON 字段、盐长和键序。
+- ASK 与 AuthKey 必须同源；一半走真机、一半走本地自签，会出现自删自建或卡死。
 
 ## KmInstallKeybox
 

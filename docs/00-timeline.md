@@ -23,10 +23,14 @@
 | 2026-11-16 23:02 | 核对 TEE 屏蔽 / 回锁恢复的社区资料，修正「从未 provision」的判断 |
 | 2026-11-16 23:07 | 结论：解锁态没有公开可复现的「真全绿 + 微信指纹」方案 |
 | 2026-11-16 23:10 | 整理实验记录并发布到本仓库 |
+| 2026-11-17 | 修正 TAM 校验判断：自签 ATTK 的失败点在服务端；新增 [09 OhMyKeymint / Ommega 与 ATTK 信任根](09-omk-ommega-attk.md) |
 
 ## 待办
 
 - [ ] 用一台锁态 + 临时 root 的一加设备建立基线
 - [ ] 对比解锁前后 persist / oplusreserve1 / uefivarstore 差异
+- [ ] 锁态基线：确认 ATTK 是"被 secure boot 挡住"还是"已被清空"
+- [ ] 评估自己的锁态 B 机 relay，避免使用共享 ATTK
+- [ ] 对齐本地 SOTER blob：805/809 B、`rsa_pss_saltlen`、JSON 键序、`finishSign` 证据
 - [ ] 评估 `oemLcsDevState` 变量写入路径
 - [ ] 评估 SM8750 引导链级锁态伪造的可行性
