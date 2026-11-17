@@ -1,73 +1,103 @@
-# 01 设备与分区
+# 01 设备、属性与分区
 
-## 设备
+## 1. 设备
 
 | 项 | 值 |
 | --- | --- |
-| 型号 | OnePlus Ace 6（PLQ110） |
-| SoC | SM8750（平台代号 `sun` / `pakala`） |
-| 系统 | ColorOS 17 / Android 17（SDK 37） |
-| 构建 | `PLQ110_17.0.0.104(CN01)` |
-| 内核 | `6.6.118-android15-8-g9bc34d5b0c79-abogki537459655-4k` |
+| 型号 | OnePlus Ace 6（`PLQ110`，板级 `OP6113L1`） |
+| SoC | SM8750（平台代号 `sun` / `pakala`，`ro.board.platform=canoe`） |
+| 系统 | ColorOS 17 / Android 17（SDK 37），`PLQ110_17.0.0.104(CN01)` |
+| 内核 | `6.6.118-android15-8-…`，ABL 构建 |
+| 构建号 | `CP2A.260605.016` |
+| 指纹 | `OnePlus/PLQ110/OP6113L1:17/CP2A.260605.016/B.30b7e77-a6bb2c-a8f423:user/release-keys` |
 | 安全补丁 | 2026-09-01 |
-| Root | KernelSU，uid=0，域 `u:r:ksu:s0` |
+| Root | KernelSU，`uid=0`，域 `u:r:ksu:s0`，SELinux `Enforcing` |
 | 槽位 | `_a` |
 
-## 模块
+> 构建号与 OTA 号不是同一个东西：本次实测 `ro.build.display.id = CP2A.260605.016`，而 `ro.build.version.ota = PLQ110_17.0.0.104(CN01)`。早期文档把两者混写成同一行，容易对不上。
 
-`/data/adb/modules`：`Caelifall_SensorDecoy`、`hybrid_mount`、`inte_rmmod_early`、`susfs4ksu`、`teesim`、`tri_exp_caelifall`、`zygisksu`。
+## 2. 真实锁态
 
-`teesim` 只做两件事：
+本机 `ro.boot.*` 曾被伪装模块改写，判断真实状态**必须以 `/proc/cmdline` 为准**（它是 ABL 直接传给内核的，模块改不到）：
 
-- 早期/晚期属性伪装（`blhide.log`：early `applied=4`，late `applied=0`）；
-- `libteesim_keymint.so` 注入 keystore2（PID 1235），不注入 KeyMint HAL，不碰 cryptoeng / soter。
-
-杀掉 teesim 并重启 keystore2 后 `soter-provision 1` 仍 `fail -20`，不是 SOTER 失败原因。
-
-## 真实启动状态
-
-属性（被模块改过）：
-
-```
-ro.boot.verifiedbootstate=green
-ro.boot.flash.locked=1
-ro.boot.vbmeta.device_state=locked
+```sh
+adb shell 'tr " " "\n" < /proc/cmdline' | grep -E 'oplusboot|avbkeys'
 ```
 
-`/proc/cmdline`：
+本次实测（2026-11-17）：
 
 ```
-oplusboot.verifiedbootstate=orange
-oplusboot.secure_type=3
+oplusboot.mode=reboot
+oplusboot.prjname=24851
+oplusboot.serialno=<hex>
 oplusboot.rpmb_enabled=1
+oplusboot.secure_type=3
+oplusboot.sku=7
+oplus_region=151
+oplusboot.verifiedbootstate=orange
 oplus.avbkeysha256=1799b97e6a3d4daa0e76710d7492aaccc97ea12d9673fc58e72ce7d3ab16d8c6
 ```
 
-`/proc/bootconfig`：
+同一时刻的 `getprop` 也是真实值（说明本次会话里伪装模块没有生效）：
 
 ```
-androidboot.verifiedbootstate = "green"
-androidboot.vbmeta.device_state = "unlocked"
+ro.boot.verifiedbootstate=orange
+ro.boot.flash.locked=0
+ro.boot.vbmeta.device_state=unlocked
 ```
 
-## 分区
+结论：**设备处于已解锁、AVB 为 orange 的状态**。这一条对后面所有"解锁态行为"的判断都是前提；如果哪天 `getprop` 又变回 `green/locked`，那是模块在起作用，不能当作真实锁态。
 
-| 分区 | 节点 | 大小 | 内容 |
-| --- | --- | --- | --- |
-| `xbl_a` | sdb1 | 3.5 MB | TME 固件字符串，无 efisp/GBL |
-| `xbl_config_a` | sdb2 | 400 KB | `pre-ddr-pakala-1.0.dtb`、`LinuxLoader`、PIL 表 |
-| `uefi_a` | sde1 | 5 MB | ELF64，LK（`arch/arm64/arch.c`、`PSCI`） |
-| `abl_a` | sde8 | 1 MB | 32-bit ARM ELF，LZMA 压缩 UEFI FV，解压 815,304 B |
-| `uefisecapp_a` | sde17 | 2 MB | ELF |
-| `uefivarstore` | sde78 | 512 KB | 全 0 |
-| `oplusreserve1` | sdf2 | 8 MB | 环形引导日志 + REBOOT_INFO |
-| `secdata` | — | 28 KB | OPLUS SM8750 Attestation 证书链（无私钥） |
-| `keymaster_a/b` | sde10 等 | 512 KB | 两份相同（sha256 `7b85e58f…`），ELF64 已 strip |
+## 3. 分区与数据布局
 
-`/dev/block/by-name` 共 143 项，无 `efisp`。
+`/dev/block/by-name` 共 143 项，与本主题相关的：
 
-## Root 能做什么
+| 分区 | 大小 | 与本主题的关系 |
+| --- | --- | --- |
+| `persist` | 约 45 MB | KeyMint SFS 槽位（设备 ID、attestation key），**不含 ATTK** |
+| `secdata` | 28,672 B | OPLUS SM8750 Attestation 证书链（无私钥） |
+| `devinfo` | 4,096 B | 实测全 0 |
+| `ocdt` | 131,072 B | 明文无 SOTER 相关字符串 |
+| `uefivarstore` | 524,288 B | 实测全 0 |
+| `misc` / `frp` | 1 MB / 512 KB | 无相关数据 |
+| `oplus_sec_a` | 10 MB | PKI/attestation TA 数据，唯一出现 `RPMB` 字样处（是 JSON 字段名） |
+| `oplusreserve1` | 8 MB | 环形引导日志 + REBOOT_INFO，cryptoeng cmd 91 读它 |
+| `oplus_sec_b`、`keystore`、`vm-persist` | — | 与 SOTER 无关 |
 
-- 能读分区、ptrace/注入 vendor HAL（KeyMint、cryptoeng、soter 均可 attach）。
-- 不能改 TEE 的 RPMB/SFS，不能改 ABL 传给 TEE 的锁态，不能伪造腾讯 CA 签名。
-- 运行时 `set_device_locked` 返回 `-40`。
+**没有 `sfs`、`soter` 独立分区，也没有 `efisp`。** SOTER 的 ATTK 表在 TEE 的 RPMB 逻辑分区里（见 [05](05-soter-ta.md)），任何一个越狱可见的分区都不会有它。
+
+## 4. 进程与服务
+
+```
+vendor.qti.hardware.soter-service        → ISoter/default
+vendor.oplus.hardware.cryptoeng@1.0-service → ICryptoeng/default
+android.hardware.security.keymint-service-qti → IKeyMintDevice/default
+keystore2                                 → 系统 keystore
+com.tencent.soter.soterserver             → 微信侧 SOTER 服务（u0_aXXX）
+```
+
+init 定义：
+
+- `/vendor/etc/init/vendor.qti.hardware.soter-service.rc`：`service vendor.soter`，`class late_start`，`user system`，`group system drmrpc`。
+- `/odm/etc/init/vendor.oplus.hardware.cryptoeng@1.0-service_FDE.rc`：`service hal_cryptoeng_oplus`，`class hal`，`user system`，`interface aidl …ICryptoeng/default`；同一份 rc 还对 persist 的 `DdHdVQd1…_` 与 `_Alt` 做 chmod（见 [10 §5](10-kminstallkeybox.md)）。
+
+两个服务都被 `kill -9` 后由 init 自动拉起，可作为实验里的"重启点"。
+
+## 5. Root 能做什么、不能做什么
+
+能做：
+
+- 读所有块设备、`adb pull` 分区；
+- ptrace/注入 vendor HAL（本次实测 soter-service、cryptoeng HAL 都可 `service call` 或杀进程）；
+- `mount --bind` 单文件（`/vendor/firmware_mnt` 虽然 `ro`，但 bind mount 可以覆盖单个文件，见 [07](07-attempts.md)）；
+- 调 smcinvoke 通道（`rpmbClient` 就是这么读 RPMB 状态的）。
+
+不能做：
+
+- 改 TEE 内的 RPMB 内容或 TA 映像（有完整性校验）；
+- 改 ABL 传给 TEE 的锁态（`set_device_locked` 返回 `-40`）；
+- 伪造 ATTK 的签发链（`.mdt` 用 OPLUS/QTI 私钥签名）。
+
+## 6. 本机实测的 15 行
+
+见 [02](02-engineering-mode.md)。当前状态：**只有 `SOTER key` 一行红**，`Attestation key` 与 `RKP default` 已经是绿的（那是 [09](09-rkp-attestation.md) 修好的，与 SOTER 无关）。

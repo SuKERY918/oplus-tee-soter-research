@@ -1,6 +1,41 @@
 # tools
 
-在 OnePlus Ace 6（PLQ110 / SM8750 / ColorOS 17）上实测过的脚本。默认调用 `adb`，可用 `ADB` 覆盖路径、`DEV` 指定序列号。
+## analyze/：静态分析脚本（Python 3，只用标准库）
+
+这些脚本不需要设备，输入是 `adb pull` 下来的二进制。实测环境 Python 3.14，无第三方依赖。
+
+| 脚本 | 输入 | 作用 |
+| --- | --- | --- |
+| [`build_ta.py`](analyze/build_ta.py) | `<dir> <prefix>` | 按 program header 把 `b00..b08` 重组成一个 ELF。**必须用它**，直接 `cat` 会少 0xdc8 字节 |
+| [`pltmap.py`](analyze/pltmap.py) | `<elf>` | 解 `.dynamic`/`.rela.plt`，输出导入符号 → GOT → PLT 桩地址 |
+| [`dumptable.py`](analyze/dumptable.py) | `<elf> [--table off:cnt]` | 打印 HAL 的定长命令表（默认 cryptoeng 的 `0x200A8:26` / `0x20248:25`） |
+| [`strings.py`](analyze/strings.py) | `<file> [minlen] [--utf16]` | 带文件偏移的字符串提取（ASCII / UTF-16LE） |
+| [`find20.py`](analyze/find20.py) | `<elf>` | 扫 `MOVN/MOVZ` 编码的 `-20` 字面量，用来确认错误码来源 |
+| [`scanmagic.py`](analyze/scanmagic.py) | `<path> [--add NAME=HEX]` | 扫 `ETQS`/`FTQS`/`SOTER`/`ATTK`/`RPMB` 等 magic |
+| [`sfs_tags.py`](analyze/sfs_tags.py) | `<persist 槽位目录>` | 枚举 SFS 文件名与逻辑 tag（`TEE_DEVICE_ID_*`、`attest_key`…） |
+| [`uiget.py`](analyze/uiget.py) | `<xml> <resource-id ...>` | 从 uiautomator dump 里按 resource-id 取文本 |
+
+常用组合：
+
+```sh
+# 1) 重组 soter64（输出 84,575 B）
+python tools/analyze/build_ta.py samples/soter_ta/image soter64
+
+# 2) 导入表与桩
+python tools/analyze/pltmap.py samples/soter_ta/image/soter64.bin | head -60
+
+# 3) -20 到底在哪
+python tools/analyze/find20.py samples/soter_ta/image/soter64.bin
+
+# 4) 有没有 ATTK 的副本
+python tools/analyze/scanmagic.py samples/persist
+```
+
+注意 `find20.py` 默认按 `va = file − 0x1000` 打印参考 VA（只对 `build_ta.py` 产出的镜像成立）。
+
+## 设备脚本（需要 adb + root）
+
+默认调用 `adb`，可用环境变量 `ADB` 覆盖路径、`DEV` 指定序列号。
 
 | 脚本 | 作用 | 是否修改设备 |
 | --- | --- | --- |
@@ -18,13 +53,13 @@
 
 ```sh
 ./tools/diag.sh
-DEV=3B15AW00WGJ00000 ./tools/diag.sh
+DEV=<serial> ./tools/diag.sh
 ```
 
 采集内容：
 
 - `getprop` 的型号、版本、指纹；
-- `/proc/cmdline` 里的 `oplusboot.*`（`verifiedbootstate=orange` 是真实锁态，`ro.boot.*` 已被模块改写）；
+- `/proc/cmdline` 里的 `oplusboot.*`（`verifiedbootstate=orange` 是真实锁态）；
 - `id`（KernelSU 下为 `uid=0(root) context=u:r:ksu:s0`）；
 - `vendor.qti.hardware.soter-provision 1..4` 的返回；
 - persist 两个 Attestation 槽位的文件数、`5r5` 条数与 mtime；
@@ -42,7 +77,7 @@ DEV=3B15AW00WGJ00000 ./tools/diag.sh
 
 ## fix-rkp.sh
 
-把 device ID 写进 TEE 并重建 persist 槽位，走 Google RKP 远程预配修复 Attestation key。**不可回滚**，详见 [docs/10](../docs/10-rkp-device-id.md)。
+把 device ID 写进 TEE 并重建 persist 槽位，走 Google RKP 远程预配修复 Attestation key。**不可回滚**，详见 [docs/09](../docs/09-rkp-attestation.md)。
 
 ```sh
 ./tools/fix-rkp.sh
@@ -67,6 +102,8 @@ frida -U -p <cryptoeng pid> -l fake61.js -q
 ```
 
 效果：工程模式页 `RKP default` 变绿，并写入 `Settings.Global` 的 `rkpdefault_import=1`。只是视觉与缓存，**不 provision RKP**，重启即失效。
+
+> 注意：`rkpdefault_import` 这条缓存路径本轮**未复核**，见 [docs/02 §7](../docs/02-engineering-mode.md)。
 
 ## agent_soter.js / hook_soter.py
 
@@ -97,4 +134,4 @@ pkill -f 'ommega-inject --soterta-serve'
 setprop ctl.start vendor.soter
 ```
 
-**注意**：没有可用 ASK/RPC 时，微信支付设置会卡 146 秒。实验完务必恢复原厂。自签 ATTK 在 TAM 侧必然验签失败，微信会在 1 秒内 `removeAllAuthKey` + `removeAllUidKey`，不要指望它修好 SOTER。
+**注意**：没有可用 ASK/RPC 时，微信支付设置会卡 146 秒。实验完务必恢复原厂。自签 ATTK 在 TAM 侧必然验签失败，微信会在 1 秒内 `removeAllAuthKey` + `removeAllUidKey`，不要指望它修好 SOTER。详见 [docs/07](../docs/07-attempts.md)。
