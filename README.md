@@ -17,8 +17,9 @@
 | --- | --- |
 | 机型 | OnePlus Ace 6（`PLQ110` / `OP6113L1`） |
 | 平台 | SM8750，Android 17 / ColorOS 17.0.0 |
+| 系统版本 | `PLQ110_17.0.0.104(CN01)`（`ro.build.display.id`） |
 | 构建 | `CP2A.260605.016`，OTA `PLQ110_11.C.14_1140_202610072355` |
-| 内核/系统版本 | `PLQ110_17.0.0.104(CN01)` |
+| 内核 | `6.6.118-android15-8-g9bc34d5b0c79-abogki537459655-4k` |
 | 安全补丁 | 2026-09-01 |
 | Root | KernelSU（`u:r:ksu:s0`），SELinux Enforcing |
 | BL 真实状态 | **已解锁**：`ro.boot.verifiedbootstate=orange`、`ro.boot.flash.locked=0`、`ro.boot.vbmeta.device_state=unlocked` |
@@ -31,7 +32,7 @@
 
 | # | 结论 | 证据 | 详情 |
 | --- | --- | --- | --- |
-| 1 | 工程模式三个红项是三条独立链路：SOTER 走 `soter64` TA，Attestation 走 KeyMint TA + keystore2，RKP 走 cryptoeng cmd 61 | 实测 | [02](docs/02-engineering-mode.md) |
+| 1 | 工程模式各 Key 行是互相独立的链路：SOTER 走 `soter64` TA，Attestation 走 KeyMint TA + keystore2，RKP 走 cryptoeng cmd 61 | 实测 | [02](docs/02-engineering-mode.md) |
 | 2 | SOTER 全链路是 **APK → cryptoeng HAL（cmd 57）→ ISoter → QSEECom → `soter64` TA**，HAL 只转发，真正的拒绝在 TA | 代码 | [03](docs/03-cryptoeng-hal.md) |
 | 3 | `soter-provision 1/2/3/4` 全部 `-20`，**包括纯读的 4（getDeviceId）** | 实测 | [04](docs/04-soter-service.md) |
 | 4 | `-20` 只有一个来源：`sub_52E8` 判定「表头 magic/版本合法，但每一份 ATTK 载荷都通不过 AES-GCM 校验」 | 代码 | [05](docs/05-soter-ta.md) |
