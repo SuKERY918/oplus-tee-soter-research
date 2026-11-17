@@ -57,13 +57,16 @@ python tools/analyze/build_ta.py samples/soter_ta/image soter64
 
 ```sh
 python - <<'PY'
-d = open('samples/soter_ta/image/soter64.bin','rb').read()
-print(len(d), hex(len(d)))                 # 84575 0x14a5f
-print(d[0x1499e-0x1000+0x1000-0x238:][:0]) # 只做长度确认，符号见下
+d = open('samples/soter_ta/image/soter64.bin', 'rb').read()
+assert len(d) == 84575, len(d)
+assert d[0x14500:0x1450f] == b'\x00app_heap_limit', d[0x14500:0x1450f]
+assert d.find(b'qsee_stor_read_sectors') == 0x1499e
+assert d.find(b'qsee_log') == 0x148f8
+print('ok')
 PY
 ```
 
-更实用的自检：`.dynstr` 头应等于 `\0app_heap_limit\0qsee_SW_AE_FinalData…`，且 `qsee_stor_read_sectors` 在 file 0x1499e、`qsee_log` 在 0x148f8。
+> 记住 `va = file − 0x1000`：`.dynstr` 的 VA 是 `0x13500`，对应文件偏移 `0x14500`；`qsee_stor_read_sectors` 的 VA 是 `0x1399e`、文件偏移 `0x1499e`。混用两者是本项目早期最容易犯的错。
 
 ### 2.3 重建后地址自洽
 
@@ -213,8 +216,10 @@ return rc;
 
 ```c
 if (__ROR8__(len - 8, 3) > 3) return -16;              // len ∈ {8,16,24,32}
-type 0: label1 = "KM SOTER UNIQUE ID"   label2 = "SOTER UNIQUE ID"
-type 1: label1 = "KM SOTER SN UNIQUE ID" label2 = "KM SOTER SN UNIQUE ID FROM SHK"
+type 0: label1 = "KM SOTER UNIQUE ID"           (va 0x11000)
+        label2 = "KM SOTER UNIQUE ID FROM SHK"  (va 0x11013)
+type 1: label1 = "KM SOTER SN UNIQUE ID"        (va 0x1102f)
+        label2 = "KM SOTER SN UNIQUE ID FROM SHK" (va 0x11045)
 default: log("%s: Not supported key type","getDerivedKey"); return -15;
 rc = qsee_kdf(0, len, label1, strlen(label1), label2, strlen(label2), out, len);
 ```
@@ -350,31 +355,49 @@ qsee_log(8, "COUNTER %llu", ...);
 加密参数：
 
 - 算法 AES-256-GCM（`sub_35F8`：`qsee_SW_Cipher_Init` + GCM 模式 3，key 长度 32）；
-- key = `qsee_kdf(0, 32, "KM SOTER UNIQUE ID", "SOTER UNIQUE ID")`；
+- key = `qsee_kdf(0, 32, "KM SOTER UNIQUE ID", "KM SOTER UNIQUE ID FROM SHK")`；
 - **AAD = IV 本身**；
 - 明文长度 = `len + 16`（含 entry 头）。
 
-## 6. 字符串证据（`strings` 命中位置，va）
+## 6. 字符串证据（`strings.py` 命中位置，重建镜像的 va = file − 0x1000）
 
 ```
+0xbec7  query_device_id
+0xbed7  is_secure_boot_enabled
 0xbeee  SOTER_CE
-0xbee0  enable_soter
-0xbef2  get_soter_enable
-0xbf0a  soter_enable_default %d
-0xc02e  is_secure_boot_enabled
-0xc0a7  rpmb_init
-0xc0c1  qsee_stor_device_init error ret: %d
-0xc0e5  !!! secboot device && rpmb error, BAILING OUT !!!
-0xc117  secboot device : %u
-0xc144  SOTER: Header not validated
-0xc160  magic_num:0x%x, expected:0x%x
-0xc1a0  SOTER: ATTK not set
-0xc1bb  ATTK status:0x%x, expected:0x%x
-0xc2b3  Magic matches but attk invalid
-0xc2dd  qsee_stor_open_partition() for Soter partition failed, adding the partition
-0xc33e  Successfully added SOTER partition: %u
-0xc3a5  ATTK already provisioned or RPMB not provisioned
+0xbfdc  enable_soter
+0xbfe9  get_soter_enable
+0xbffa  soter_enable_default %d
+0xc20c  SOTER_Cipher_keyBlob
+0xc3d7  soter_rsa_init_key
+0xc45e  validate_attk_copy
+0xc494  soter_rsa_serialize_key
+0xc6ec  rpmb_init
+0xc71a  !!! secboot device && rpmb error, BAILING OUT !!!
+0xc74c  secboot device : %u
+0xc760  get_validated_attk
+0xc773  SOTER: Header not validated
+0xc78f  magic_num:0x%x, expected:0x%x
+0xc7ad  ATTK status:0x%x, expected:0x%x
+0xc7cd  SOTER: ATTK not set
+0xc7e1  soter_query_update_counter
+0xc809  SOTER: Update counter failed
+0xc826  update_soter_rpmb_header
+0xc83f  soter_rpmb_alloc_read
+0xc88a  Magic matches but attk invalid
+0xc8a9  store_attk
+0xc900  open_soter_partition
+0xc915  Successfully added SOTER partition: %u
+0xc957  soter_sfs_check_file / 0xca25 soter_sfs_check_key / 0xca44 delete /
+        0xca59 write_file / 0xca6e read_file
+0xcfa9  SOTER_GENERATE_ATTK … 0xd0be SOTER_GET_VERSION（15 个命令名，间隔 0x12~0x16）
+0x11000 KM SOTER UNIQUE ID
+0x11013 KM SOTER UNIQUE ID FROM SHK
+0x1102f KM SOTER SN UNIQUE ID
+0x11045 KM SOTER SN UNIQUE ID FROM SHK
 ```
+
+> 这组数字是脚本直接跑出来的（`python tools/analyze/strings.py … | grep`），不是手工换算。旧版文档里 `0xc0a7 rpmb_init`、`0xc144 SOTER: Header not validated` 之类的偏移来自**直接拼接镜像**，与本节差 0xdc8，引用时会全部错位。
 
 `b08` 段（va 0x15000，4184 B）不是哈希表，而是证书/元数据段，里面是同一组 X.509 字符串（`Guangdong`/`Shenzhen`、`OPLUS Technologies`、`OPLUS Attestation CA`、`240326125815Z`–`440321125815Z`、`OPLUS SM8750 Attestation`、`General OPLUS Use Key`、`OPLUS ROOT CA 1`）。
 
